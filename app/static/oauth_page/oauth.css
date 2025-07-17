@@ -1,0 +1,117 @@
+/* || General setup */
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 10px;
+  background-color: #f3f3f3;
+}
+
+body {
+	text-align:center;
+	margin-top:20vh;
+	margin-bottom:20vh;
+}
+
+/* || typography */
+
+h1, h2, h3 {
+  font-family: "Montserrat", "Helvetica", sans-serif;
+  font-weight: 500;
+  color: #1d2023;
+}
+
+p, input, li {
+  font-family: "Montserrat", "Helvetica", sans-serif;
+  color: #2a2a2a;
+}
+
+p, li {
+  font-size: 1.6rem;
+  line-height: 1.5;
+}
+/* || header layout */
+
+header {
+	display: flex;
+	align-items: center;
+	justify-content: space-around;
+}
+
+img {
+	max-width: 50px;
+}
+
+/* || main layout */
+
+form {
+	display:inline-block;
+	padding: 2em;
+	border: 1px solid black;
+	border-radius: 10px;
+	background-color: white;
+}
+
+fieldset {
+	padding: 2em;
+	margin: 1em;
+	border-radius: 10px;
+}
+button {
+	height: 2em;
+	width: 10em;
+}
+
+/* || suc oauth layout */
+
+.suc_body {
+	margin-top: 35vh;
+}
+
+.suc_img {
+	margin-right: 15px;
+}
+
+.suc_p {
+	margin-top:10px;
+    margin-bottom:0px;
+}
+
+a {
+	display: inline-block;
+	text-decoration: none;
+	color: black;
+}
+
+a:hover {
+	color:red;
+}
+
+a:active {
+	color:#ce3030;
+}
+
+.suc_header {
+	border-bottom: 1px solid gray;
+}
+
+
+/* Выравнивание полей табельного и пароля */
+input[id='tab_number']{
+	margin-left:20px;
+}
+
+.tab_number_field {
+	display: flex;
+	justify-content: space-between;
+
+}
+
+.password_number {
+	display: flex;
+	justify-content: space-between;
+
+}
