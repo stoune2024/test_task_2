@@ -8,6 +8,8 @@ from starlette.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from passlib.context import CryptContext
 from contextlib import asynccontextmanager
+import jwt
+
 
 from ..config import settings
 
@@ -67,7 +69,8 @@ engine = create_engine(f"postgresql+psycopg2://"
                        f"{settings.postgres_password}@"
                        f"{settings.postgres_host}:"
                        f"{settings.postgres_port}/"
-                       f"{settings.postgres_db_name}"
+                       f"{settings.postgres_db_name}",
+                       # echo=True
                        )
 
 

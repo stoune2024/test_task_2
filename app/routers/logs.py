@@ -53,7 +53,7 @@ log_config = {
             'level': 'INFO',
             'formatter': 'json',
             'filename': 'logs/main.log',
-            'maxBytes': 10485760, # 10MB
+            'maxBytes': 1048500,  # 1MB
             'backupCount': 5,
         },
         # "time_rotating_file": {
