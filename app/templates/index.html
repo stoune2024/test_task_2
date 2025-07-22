@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width"/>
 		<meta name='author' content='Maxim Chubarov'/>
 		<meta name='description' content='Система Персонального Электронного Документооборота для сотрудников АО "Транснефть-Прикамье"'/>
-		<title>СПЭД</title>
+		<title>{{ title }}</title>
 		<link rel='shortcut icon' href="{{ url_for('static', path='/my_icon.png') }}" type='image/x-icon' />
 		<link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}" />
 	</head>
@@ -29,6 +29,7 @@
 			</svg>
 			<h1> Система Персонального Электронного Документооборота </h1>
 		</header>
+		{% if title == 'СПЭД' %}
 		<nav>
 			<ul>
 				<li><a href="{{ url_for('get_exit_page') }}">Выйти</a></li>
@@ -75,6 +76,58 @@
 			</form>
 
 		</main>
+		{% elif title == 'Подача документов' %}
+		<nav>
+			<ul>
+				<li><a href="{{ url_for('get_index') }}">На главную</a></li>
+				<li><a href="{{ url_for('get_exit_page') }}">Выйти</a></li>
+			</ul>
+		</nav>
+		<main>
+		<form action="/submit/docs/nvo" method="post">
+			<h1>Заявление на отгул за ранее отработанное время</h1>
+			<fieldset>
+				<legend><p>Укажите даты</p></legend>
+				<p>
+					<label for="shift_worked">Отработанная смена, за которую берете отгул:</label>
+					<input type="date" id="shift_worked" name="shift_worked">
+				</p>
+				<p>
+					<label for="day_off">Желаемая дата отгула:</label>
+					<input type="date" id="day_off" name="day_off">
+				</p>
+			</fieldset>
+			<p class='button'><button type="submit">Отправить</button></p>
+			<h1>Ранее поданные заявления на НВО:</h1>
+			<table>
+				<thead>
+					<tr>
+						<th>№п/п</th>
+						<th>Дата подачи заявления</th>
+						<th>День работы</th>
+						<th>День отгула</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% if users_nvo_docs != [] %}
+					{% for i in users_nvo_docs %}
+					<tr>
+						<td>{{i.id}}</td>
+						<td>{{i.submission_day}}</td>
+						<td>{{i.shift_worked}}</td>
+						<td>{{i.day_off}}</td>
+					</tr>
+					{% endfor %}
+				{% else %}
+					<tr>
+						<td colspan="4"><i>Информация отсутсвует</i></td>
+					</tr>
+				{% endif %}
+				</tbody>
+			</table>
+		</form>
+		</main>
+		{% endif %}
 		<footer>
 			<p>
 				<a class='footer_first_a' href='тут будет ссылка'>Официальный сайт ПАО "Транснефть"</a>

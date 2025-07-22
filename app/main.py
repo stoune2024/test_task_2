@@ -7,6 +7,7 @@ from app.routers.routs import router as routs_router, templates
 from app.routers.db import router as db_router
 from app.routers.safety import router as safety_router
 from app.routers.logs import main_logger
+from app.routers.no_sql_db import redis_client
 
 app = FastAPI()
 
@@ -55,14 +56,22 @@ async def http_exception_handler(request, exc):
     if exc.status_code == 401:
         return templates.TemplateResponse(
             request=request,
-            name="401_error.html",
+            name="index_1.html",
             status_code=exc.status_code,
             headers=exc.headers,
+            context={
+                'title': redis_client.hget('401_error_page', 'title'),
+                'message': redis_client.hget('401_error_page', 'message'),
+            }
         )
     if exc.status_code == 404:
         return templates.TemplateResponse(
             request=request,
-            name="404_error.html",
+            name="index_1.html",
             status_code=exc.status_code,
             headers=exc.headers,
+            context={
+                'title': redis_client.hget('404_error_page', 'title'),
+                'message': redis_client.hget('404_error_page', 'message'),
+            }
         )

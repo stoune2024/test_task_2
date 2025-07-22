@@ -9,13 +9,36 @@
 		<link rel='shortcut icon' href="{{ url_for('static', path='/my_icon.png') }}" type='image/x-icon' />
 		<link rel="stylesheet" href="{{ url_for('static', path='/oauth_page/oauth.css') }}" />
 	</head>
+	{% if title == 'СПЭД Авторизация' %}
 	<body class='suc_body'>
 		<form>
 			<header class ='suc_header'>
 			<img class='suc_img' src="{{ url_for('static', path='/my_icon.png') }}"></img>
-			<h1 class='suc_h1'>Пользователь не авторизован</h1>
+			<h1 class='suc_h1'>{{message}}</h1>
 			</header>
-			<p class='suc_p'><a href="{{ url_for('get_index') }}">Назад</a></p>
+			<p class='suc_p'><a href="{{ url_for('get_index') }}">На главную</a></p>
 		</form>
 	</body>
+	{% elif title == 'Авторизация в СПЭД' %}
+	<body>
+		<form action="/login" method="post">
+			<header>
+			<img src="{{ url_for('static', path='/my_icon.png') }}"></img>
+			<h1>Авторизация в СПЭД</h1>
+			</header>
+			<fieldset>
+				<legend><p>Введите табельный номер и пароль</p></legend>
+				<p class='tab_number_field'>
+					<label for="tab_number">Табельный номер:</label>
+					<input type="text" id="tab_number" name="username" />
+				</p>
+				<p class='password_number'>
+					<label for="pwd">Пароль:</label>
+					<input type="password" id="pwd" name="password" />
+				</p>
+				<button type="submit">Войти</button>
+			</fieldset>
+		</form>
+	</body>
+	{% endif %}
 </html>

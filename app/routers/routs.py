@@ -106,7 +106,8 @@ async def get_index(
         current_user = session.query(UserTable).filter(UserTable.username == username).one()
         return templates.TemplateResponse(request=request, name='index.html', context={
             'first_name': current_user.first_name,
-            'third_name': current_user.third_name
+            'third_name': current_user.third_name,
+            'title': redis_client.hget('index_page', 'title')
         })
     except ExpiredSignatureError:
         return RedirectResponse('/auth', status_code=status.HTTP_303_SEE_OTHER)
@@ -119,25 +120,21 @@ async def get_auth_page(
         request: Request,
 ):
     """ Эндпоинт отображения страницы с авторизацией """
-    return templates.TemplateResponse(request=request, name='oauth.html')
+    return templates.TemplateResponse(request=request, name='index_1.html', context={
+        'title': redis_client.hget('oauth_page', 'title')
+    })
 
 
 @router.get('/suc_auth')
-async def get_auth_page(
+async def get_suc_auth_page(
         request: Request,
 ):
     """ Эндпоинт отображения страницы с авторизацией """
-    return templates.TemplateResponse(request=request, name='suc_oauth.html')
+    return templates.TemplateResponse(request=request, name='index_1.html', context={
+        'title': redis_client.hget('suc_oauth_page', 'title'),
+        'message': redis_client.hget('suc_oauth_page', 'message'),
+    })
 
-
-@router.get('/certificates')
-async def get_certs_page(
-        request: Request,
-        user_token: Annotated[TokenData, Depends(verify_token)],
-):
-    """ Эндпоинт отображения страницы с удостоверениями """
-    if user_token:
-        return templates.TemplateResponse(request=request, name='my_certs_page.html')
 
 
 @router.get('/exit')
@@ -145,7 +142,10 @@ async def get_exit_page(
         request: Request,
 ):
     """ Эндпоинт выхода из учетной записи """
-    response = templates.TemplateResponse(request=request, name='log_out.html')
+    response = templates.TemplateResponse(request=request, name='index_1.html', context={
+        'title': redis_client.hget('log_out_page', 'title'),
+        'message': redis_client.hget('log_out_page', 'message')
+    })
     response.delete_cookie(key='access-token')
     return response
 
@@ -165,8 +165,9 @@ async def get_submit_docs_page(
                 username: str = payload.get("sub")
                 current_user_id = session.query(UserTable.id).filter(UserTable.username == username).one()
                 users_nvo_docs = session.query(NvoTable).filter(NvoTable.user_id == current_user_id.id).all()
-                return templates.TemplateResponse(request=request, name='submit_nvo.html', context={
-                    'users_nvo_docs': users_nvo_docs
+                return templates.TemplateResponse(request=request, name='index.html', context={
+                    'users_nvo_docs': users_nvo_docs,
+                    'title': redis_client.hget('submit_nvo_page', 'title')
                 })
             case "fireness_blank":
                 return {"message": "заявление об увольнении"}
@@ -221,9 +222,15 @@ async def submit_nvo_blank(
                 f'app/templates/{current_user.tab_no}.pdf',
                 settings,
             ))
-            return templates.TemplateResponse(request=request, name='suc_submit.html')
+            return templates.TemplateResponse(request=request, name='index_1.html', context={
+                'title': redis_client.hget('suc_submit_page', 'title'),
+                'message': redis_client.hget('suc_submit_page', 'message'),
+            })
     except DataError:
-        return templates.TemplateResponse(request=request, name='empty_data_sent_error.html')
+        return templates.TemplateResponse(request=request, name='index_1.html', context={
+            'title': redis_client.hget('empty_data_sent_error_page', 'title'),
+            'message': redis_client.hget('empty_data_sent_error_page', 'message')
+        })
     except TimeoutError:
         return {'message': 'Проверьте подключение к интернету'}
     except smtplib.SMTPServerDisconnected:
