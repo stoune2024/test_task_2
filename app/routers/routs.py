@@ -130,28 +130,6 @@ async def get_auth_page(
     return templates.TemplateResponse(request=request, name='suc_oauth.html')
 
 
-
-@router.get('/contacts')
-async def get_contacts_page(
-        request: Request,
-        session: SessionDep
-):
-    """ Эндпоинт отображения страницы с контактами """
-    try:
-        user_token = request.cookies.get('access-token')
-        jwt.decode(user_token, settings.secret_key, algorithms=[settings.algorithm])
-        person_list = session.query(UserTable).all()
-        return templates.TemplateResponse(request=request, name='contacts_page.html', context={
-            'person_list': person_list,
-            'path_to_static': ''
-        })
-    except ExpiredSignatureError:
-        return RedirectResponse('/auth', status_code=status.HTTP_303_SEE_OTHER)
-    except DecodeError:
-        return RedirectResponse('/auth', status_code=status.HTTP_303_SEE_OTHER)
-
-
-
 @router.get('/certificates')
 async def get_certs_page(
         request: Request,
