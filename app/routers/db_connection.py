@@ -13,7 +13,7 @@ def create_database():
     connection = psycopg2.connect(
         user=f"{settings.postgres_user}",
         password=f"{settings.postgres_password}",
-        # host=f"{settings.docker_postgres_host}"
+        host=f"{settings.docker_postgres_host}"
     )
     connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = connection.cursor()

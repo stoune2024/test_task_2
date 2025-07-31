@@ -1,0 +1,76 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: psgr
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=test_task_2
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - dbnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    command: >
+      postgres -c max_connections=1000
+               -c shared_buffers=256MB
+               -c effective_cache_size=768MB
+               -c maintenance_work_mem=64MB
+               -c checkpoint_completion_target=0.7
+               -c wal_buffers=16MB
+               -c default_statistics_target=100
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres_user -d postgres_db" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - "127.0.0.1:8080:8080"
+    links:
+      - "postgres:db"
+    networks:
+      - dbnet
+    depends_on:
+      - postgres
+
+  myapp:
+    build: .
+    image: myapp
+    container_name: myapp_cont
+    env_file:
+      - .env
+    networks:
+      - dbnet
+    ports:
+      - "127.0.0.1:8000:80"
+    volumes:
+      - ./app:/app
+    depends_on:
+      - postgres
+
+
+networks:
+  dbnet:
+    driver: bridge
+
+volumes:
+  postgres-data:
+
+# docker run -d --name myredis --network dbnet myredis - запуск redis
+# docker run -d --network dbnet --link myapp:db -p 8080:8080 --name adminer adminer - запуск adminer
+# docker run --name myapp -d --network dbnet -P -v appdata:/pet1 myapp - запуск приложения
