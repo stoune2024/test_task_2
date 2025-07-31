@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     postgres_user: str                  # Имя пользователя Postgres
     postgres_password: str              # Пароль пользователя Postgres
     postgres_host: str                  # Адрес хоста Postgres
+    docker_postgres_host: str           # Адрес хоста Postgres внутри сети Docker
     postgres_port: int                  # Порт Postgres
     postgres_db_name: str               # Имя базы данных Postgres
 
