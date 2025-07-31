@@ -1,17 +1,17 @@
 import datetime
 from typing import Annotated
-from fastapi import APIRouter, Depends, Form, Request, Query, HTTPException, Body
+from fastapi import APIRouter, Depends, Form, Request, Query, HTTPException, Body, Path
 from sqlmodel import SQLModel, create_engine, Session, Field, select, Relationship
 from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
-from starlette.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from psycopg2.errors import DuplicateDatabase
 from passlib.context import CryptContext
 from contextlib import asynccontextmanager
 import jwt
 
 
 from ..config import settings
+from .db_connection import create_database
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -29,7 +29,6 @@ class UserBase(SQLModel):
     tab_no: int | None = Field(default=None, unique=True)
     registered_on: datetime.date | None = Field(default=None)
     is_admin: bool = Field(default=False)
-    competence: str | None = Field(default=None)
 
 
 class UserTable(UserBase, table=True):
@@ -64,18 +63,22 @@ class NvoTable(SQLModel, table=True):
     submission_day: datetime.date
 
 
-engine = create_engine(f"postgresql+psycopg2://"
-                       f"{settings.postgres_user}:"
-                       f"{settings.postgres_password}@"
-                       f"{settings.postgres_host}:"
-                       f"{settings.postgres_port}/"
-                       f"{settings.postgres_db_name}",
-                       # echo=True
-                       )
+def get_metadata():
+    return SQLModel.metadata
+
+
+database_url = settings.get_db_url()
+
+
+engine = create_engine(database_url)
 
 
 def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+    try:
+        create_database()
+        SQLModel.metadata.create_all(engine)
+    except DuplicateDatabase:
+        print('Attempt to create existing database. Nothing to worry about)')
 
 
 def get_session():
@@ -92,21 +95,24 @@ async def lifespan(router: APIRouter):
     yield
 
 
-router = APIRouter(tags=['Взаимодействие с БД'], lifespan=lifespan)
+router = APIRouter(
+    tags=['Взаимодействие с БД'],
+    lifespan=lifespan
+)
 
 
 @router.post(
     "/reg/",
-    # response_class=HTMLResponse
 )
 def create_user(
         user: Annotated[UserCreate, Form()],
         session: SessionDep,
-        request: Request
 ):
     """
-Функция создает пользователя и добавляет его в базу данных.
-Может использоваться также для обновления данных пользователя.
+    Эндпоинт создания (регистрации нового пользователя)
+    :param user: Данные о пользователе, приходящие из HTML формы. Валидируются Pydantic моделью UserCreate
+    :param session: Объект типа Session (сессия) для взаимодействия с БД
+    :return: JSON-строка, сообщающая о результате выполнения эндпоинта
     """
     try:
         hashed_password = pwd_context.hash(user.password)
@@ -115,7 +121,6 @@ def create_user(
         session.add(db_user)
         session.commit()
         session.refresh(db_user)
-        # return templates.TemplateResponse(request=request, name="notification.html")
         return {"message": "user is created"}
     except IntegrityError as e:
         return {"message": "Oops, the data you wrote refers to an existing user. Try again",
@@ -126,30 +131,82 @@ def create_user(
 @router.get("/users/", response_model=list[UserPublic])
 def read_users(
         session: SessionDep,
-        offset: int = 0,
-        limit: Annotated[int, Query(le=100)] = 100,
+        offset: Annotated[
+            int,
+            Query(
+                title='Отступ для списка пользователей',
+                ge=0,
+                le=1000,
+            )
+        ] = 0,
+        limit: Annotated[
+            int,
+            Query(
+                title='Ограначитель списка пользователей',
+                ge=0,
+                le=1000
+            )
+        ] = 10,
 ):
     """
-Функция получения списка пользователей. Возвращает список пользователей модели UserPublic.
+    Эндпоинт получения списка пользователей.
+    :param session: Объект типа Session (сессия) для взаимодействия с БД
+    :param offset: Отступ для списка пользователей (условно их максимум 1000). Используется для пагинации
+    :param limit: Ограничитель максимального количества отображаемых пользователей. Используется для пагинации.
+    :return: Список пользователей, валидированных моделью UserPublic
     """
     users = session.exec(select(UserTable).offset(offset).limit(limit)).all()
-    # users = session.query(UserTable).all()
     return users
 
 
-@router.patch("/users/{user_id}")
+@router.get("/users/{user_id}", response_model=UserPublic)
 def update_user(
-        user_id: int,
+        session: SessionDep,
+        user_id: Annotated[
+            int,
+            Path(
+                title='Идентификатор пользователя',
+                ge=0,
+                le=1000
+            )
+        ],
+):
+    """
+    Эндпоинт получения конкретного пользователя по идентификатору из БД.
+    :param session: Объект типа Session (сессия) для взаимодействия с БД
+    :param user_id: Параметр пути, обозначающий идентификатор искомого пользователя.
+    :return: Объект пользователь, валидируемый моделью UserPublic
+    """
+    user_db = session.get(UserTable, user_id)
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return user_db
+
+
+
+@router.patch("/users/{user_id}", response_model=UserPublic)
+def update_user(
+        user_id: Annotated[
+            int,
+            Path(
+                title='Идентификатор пользователя',
+                ge=0,
+                le=1000
+            )
+        ],
         user: Annotated[UserUpdate, Form()],
         session: SessionDep,
 ):
     """
-Функция обновления данных конкретного пользователя в БД. Не поддерживается HTML5 формами, поэтому её роль играет
-post-эндпоинт. Тем не менее эндпоинт работает исправно.
+    Эндпоинт обновления данных о пользователе.
+    :param user_id: Параметр пути, обозначающий идентификатор искомого пользователя.
+    :param user: Данные о пользователе, приходящие из HTML формы. Валидируются Pydantic моделью UserUpdate
+    :param session: Объект типа Session (сессия) для взаимодействия с БД
+    :return: Объект пользователь, валидируемый моделью UserPublic
     """
     user_db = session.get(UserTable, user_id)
     if not user_db:
-        raise HTTPException(status_code=404, detail="Oops.. User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     user_data = user.model_dump(exclude_unset=True)
     extra_data = {}
     if "password" in user_data:
@@ -165,16 +222,25 @@ post-эндпоинт. Тем не менее эндпоинт работает 
 
 @router.delete("/users/{user_id}")
 def delete_user(
-        user_id: int,
+        user_id: Annotated[
+            int,
+            Path(
+                title='Идентификатор пользователя',
+                ge=0,
+                le=1000
+            )
+        ],
         session: SessionDep
 ):
     """
-Функция удаления пользователя из БД. Функция работает, но пока не реализована на практике.
-
+    Эндпоинт удаления данных о конкретном пользователе
+    :param user_id: Параметр пути, обозначающий идентификатор искомого пользователя.
+    :param session: Объект типа Session (сессия) для взаимодействия с БД
+    :return: JSON-строка, сообщающая о результате выполнения эндпоинта
     """
     user = session.get(UserTable, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Oops.. User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     session.delete(user)
     session.commit()
     return {"ok": True}

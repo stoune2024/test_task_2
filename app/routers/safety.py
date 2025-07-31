@@ -8,7 +8,6 @@ from fastapi import APIRouter, HTTPException, status, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.security.utils import get_authorization_scheme_param
-from fastapi.templating import Jinja2Templates
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from pydantic import BaseModel
